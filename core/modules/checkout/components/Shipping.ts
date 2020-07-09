@@ -1,6 +1,7 @@
-import { mapState, mapGetters } from 'vuex'
+import {mapState, mapGetters} from 'vuex'
 import RootState from '@vue-storefront/core/types/RootState'
 import toString from 'lodash-es/toString'
+
 const Countries = require('@vue-storefront/i18n/resource/countries.json')
 
 export const Shipping = {
@@ -11,17 +12,17 @@ export const Shipping = {
       required: true
     }
   },
-  beforeDestroy () {
+  beforeDestroy() {
     this.$bus.$off('checkout-after-load', this.onCheckoutLoad)
     this.$bus.$off('checkout-after-personalDetails', this.onAfterPersonalDetails)
     this.$bus.$off('checkout-after-shippingset', this.onAfterShippingSet)
   },
-  beforeMount () {
+  beforeMount() {
     this.$bus.$on('checkout-after-load', this.onCheckoutLoad)
     this.$bus.$on('checkout-after-personalDetails', this.onAfterPersonalDetails)
     this.$bus.$on('checkout-after-shippingset', this.onAfterShippingSet)
   },
-  data () {
+  data() {
     return {
       isFilled: false,
       countries: Countries,
@@ -46,36 +47,37 @@ export const Shipping = {
     ...mapGetters({
       shippingMethods: 'checkout/getShippingMethods'
     }),
-    checkoutShippingDetails () {
+    checkoutShippingDetails() {
       return this.$store.state.checkout.shippingDetails
     },
-    paymentMethod () {
+    paymentMethod() {
       return this.$store.getters['checkout/getPaymentMethods']
     }
   },
   watch: {
     shippingMethods: {
-      handler () {
+      handler() {
         this.checkDefaultShippingMethod()
       }
     },
     shipToMyAddress: {
-      handler () {
+      handler() {
         this.useMyAddress()
       },
       immediate: true
     }
+
   },
-  mounted () {
+  mounted() {
     this.checkDefaultShippingAddress()
     this.checkDefaultShippingMethod()
     this.changeShippingMethod()
   },
   methods: {
-    checkDefaultShippingAddress () {
+    checkDefaultShippingAddress() {
       this.shipToMyAddress = this.hasShippingDetails()
     },
-    checkDefaultShippingMethod () {
+    checkDefaultShippingMethod() {
       if (!this.shipping.shippingMethod || this.notInMethods(this.shipping.shippingMethod)) {
         let shipping = this.shippingMethods.find(item => item.default)
         if (!shipping && this.shippingMethods && this.shippingMethods.length > 0) {
@@ -85,26 +87,31 @@ export const Shipping = {
         this.shipping.shippingCarrier = shipping.carrier_code
       }
     },
-    onAfterShippingSet (receivedData) {
+    onAfterShippingSet(receivedData) {
       this.shipping = receivedData
       this.isFilled = true
     },
-    onAfterPersonalDetails (receivedData) {
+    onAfterPersonalDetails(receivedData) {
       if (!this.isFilled) {
         this.$store.dispatch('checkout/updatePropValue', ['firstName', receivedData.firstName])
         this.$store.dispatch('checkout/updatePropValue', ['lastName', receivedData.lastName])
       }
     },
-    sendDataToCheckout () {
+    sendDataToCheckout() {
+      if (this.$store.state.checkout.personalDetails.emailAddress.length === 0 && this.shipping.phoneNumber.length > 0) {
+        let personalDetails = Object.assign({}, this.$store.state.checkout.personalDetails)
+        personalDetails.emailAddress = `${this.shipping.phoneNumber}@domainname.com`;
+        this.$bus.$emit('checkout-after-personalDetails', personalDetails)
+      }
       this.$bus.$emit('checkout-after-shippingDetails', this.shipping, this.$v)
       this.isFilled = true
     },
-    edit () {
+    edit() {
       if (this.isFilled) {
         this.$bus.$emit('checkout-before-edit', 'shipping')
       }
     },
-    hasShippingDetails () {
+    hasShippingDetails() {
       if (this.currentUser) {
         if (this.currentUser.hasOwnProperty('default_shipping')) {
           let id = this.currentUser.default_shipping
@@ -119,7 +126,7 @@ export const Shipping = {
       }
       return false
     },
-    useMyAddress () {
+    useMyAddress() {
       if (this.shipToMyAddress) {
         this.$set(this, 'shipping', {
           firstName: this.myAddressDetails.firstname,
@@ -139,7 +146,7 @@ export const Shipping = {
       }
       this.changeCountry()
     },
-    getShippingMethod () {
+    getShippingMethod() {
       for (let i = 0; i < this.shippingMethods.length; i++) {
         if (this.shippingMethods[i].method_code === this.shipping.shippingMethod) {
           return {
@@ -153,7 +160,7 @@ export const Shipping = {
         amount: ''
       }
     },
-    getCountryName () {
+    getCountryName() {
       for (let i = 0; i < this.countries.length; i++) {
         if (this.countries[i].code === this.shipping.country) {
           return this.countries[i].name
@@ -161,18 +168,18 @@ export const Shipping = {
       }
       return ''
     },
-    changeCountry () {
+    changeCountry() {
       this.$bus.$emit('checkout-before-shippingMethods', this.shipping.country)
     },
-    getCurrentShippingMethod () {
+    getCurrentShippingMethod() {
       let shippingCode = this.shipping.shippingMethod
       let currentMethod = this.shippingMethods ? this.shippingMethods.find(item => item.method_code === shippingCode) : {}
       return currentMethod
     },
-    changeShippingMethod () {
+    changeShippingMethod() {
       let currentShippingMethod = this.getCurrentShippingMethod()
       if (currentShippingMethod) {
-        this.shipping = Object.assign(this.shipping, { shippingCarrier: currentShippingMethod.carrier_code })
+        this.shipping = Object.assign(this.shipping, {shippingCarrier: currentShippingMethod.carrier_code})
         this.$bus.$emit('checkout-after-shippingMethodChanged', {
           country: this.shipping.country,
           method_code: currentShippingMethod.method_code,
@@ -181,15 +188,15 @@ export const Shipping = {
         })
       }
     },
-    notInMethods (method) {
+    notInMethods(method) {
       let availableMethods = this.shippingMethods
       if (availableMethods.find(item => item.method_code === method)) {
         return false
       }
       return true
     },
-    onCheckoutLoad () {
+    onCheckoutLoad() {
       this.shipping = this.$store.state.checkout.shippingDetails
     }
-  }
+  },
 }
