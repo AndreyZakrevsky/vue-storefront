@@ -98,7 +98,7 @@ export const Shipping = {
       }
     },
     sendDataToCheckout() {
-      if (this.$store.state.checkout.personalDetails.emailAddress.length === 0 && this.shipping.phoneNumber.length > 0) {
+      if (this.$store.state.checkout.personalDetails.emailAddress && this.$store.state.checkout.personalDetails.emailAddress.length === 0 && this.shipping.phoneNumber.length > 0) {
         let personalDetails = Object.assign({}, this.$store.state.checkout.personalDetails)
         personalDetails.emailAddress = `${this.shipping.phoneNumber}@domainname.com`;
         this.$bus.$emit('checkout-after-personalDetails', personalDetails)
